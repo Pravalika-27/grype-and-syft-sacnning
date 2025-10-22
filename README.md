@@ -88,3 +88,72 @@ docker system prune -a -f
 docker volume prune -f
 docker container prune -f
 docker image prune -f
+
+
+trivy scanning:
+
+Trivy:
+curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
+trivy version
+
+Step 2 — Basic Scan of Each Image
+trivy image envoyproxy/envoy:tools-dev-c97cd05df9d5983873aee0e23b03f5ed7fad789e
+trivy image envoyproxy/ai-gateway-cli:latest
+trivy image envoyproxy/ai-gateway-controller:latest
+trivy image envoyproxy/gateway:v1.4.5
+trivy image envoyproxy/ratelimit:e74a664a
+
+Step 3 — Save Detailed Reports (JSON or HTML):
+Automate Scanning for All Images:json
+
+#!/bin/bash
+mkdir -p trivy_reports
+for image in \
+  envoyproxy/envoy:tools-dev-c97cd05df9d5983873aee0e23b03f5ed7fad789e \
+  envoyproxy/ai-gateway-cli:latest \
+  envoyproxy/ai-gateway-controller:latest \
+  envoyproxy/gateway:v1.4.5 \
+  envoyproxy/ratelimit:e74a664a
+do
+  safe_name=$(echo $image | tr '/:' '_')
+  echo "🔍 Scanning $image..."
+  trivy image -f json -o trivy_reports/${safe_name}.json $image
+  echo "✅ Report saved to trivy_reports/${safe_name}.json"
+done
+
+
+To get html reports :
+mkdir -p /usr/local/share/trivy/templates
+wget -O /usr/local/share/trivy/templates/html.tpl https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl
+ls /usr/local/share/trivy/templates/html.tpl
+
+#!/bin/bash
+mkdir -p trivy_reports/json trivy_reports/html
+
+TEMPLATE_PATH="/usr/local/share/trivy/templates/html.tpl"
+if [ ! -f "$TEMPLATE_PATH" ]; then
+  echo "Downloading Trivy HTML template..."
+  mkdir -p /usr/local/share/trivy/templates
+  wget -q -O "$TEMPLATE_PATH" https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl
+fi
+
+images=(
+  "envoyproxy/envoy:tools-dev-c97cd05df9d5983873aee0e23b03f5ed7fad789e"
+  "envoyproxy/ai-gateway-cli:latest"
+  "envoyproxy/ai-gateway-controller:latest"
+  "envoyproxy/gateway:v1.4.5"
+  "envoyproxy/ratelimit:e74a664a"
+)
+
+for image in "${images[@]}"; do
+  safe_name=$(echo "$image" | tr '/:' '_')
+  echo "🔍 Scanning $image..."
+
+  trivy image -f json -o "trivy_reports/json/${safe_name}.json" "$image"
+
+  trivy image --format template --template "@${TEMPLATE_PATH}" \
+    -o "trivy_reports/html/${safe_name}.html" "$image"
+
+  echo "✅ Reports saved for $image"
+done
+
