@@ -73,7 +73,7 @@ zip -r grype_reports_json.zip grype_reports_json/
 zip -r sbom_reports.zip sbom_reports/
 
 To copy internally:
-
+ssh into instance
 sudo cp /root/container_security_reports/grype_reports_json.zip /home/ec2-user/
 sudo cp /root/container_security_reports/grype_reports_txt.zip /home/ec2-user/
 sudo cp /root/container_security_reports/sbom_reports.zip /home/ec2-user/
